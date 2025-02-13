@@ -1,2 +1,1 @@
-def main() -> None:
-    print("Hello from unit-text!")
+from .cli import app
