@@ -1,0 +1,9 @@
+idea = "A blog post about using AI to write unit tests for blog posts"
+who = "Developers familiar with TDD (test driven development) and some interest in AI"
+what_they_know = "They know the TDD workflow and have a general understanding of LLMs"
+why_they_care = "Because it can help them write better articles"
+why_you = "I read a book about this, and wrote a tool to help with what that book is teaching"
+difference = "I'd like to encourage people to: 1. write more, 2. use my tool to do so in a structured way"
+goal = "Get people to try out my tool"
+perspective = "Because I'm the one who built this tool?"
+

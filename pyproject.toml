@@ -6,9 +6,13 @@ readme = "README.md"
 authors = [
     { name = "Giorgio Azzinnaro", email = "giorgio@azzinna.ro" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
-    "smolagents>=1.8.1",
+    "dicttoxml>=1.7.16",
+    "ollama>=0.4.7",
+    "pydantic>=2.10.6",
+    "smolagents[openai]>=1.8.1",
+    "tomlkit>=0.13.2",
     "typer>=0.15.1",
 ]
 
