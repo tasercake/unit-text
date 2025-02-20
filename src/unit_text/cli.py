@@ -14,7 +14,7 @@ from .models import Evaluation, IdeaModel, TestResult
 app = typer.Typer(
     short_help="Unit tests for prose",
     help="""
-    [bold green]unit-text[/bold green] helps you write unit tests for prose.
+    [bold green]unit-text[/] helps you write unit tests for prose.
     It uses :sparkles: agents :sparkles: to ensure
     that you meet the target audience's expectations,
     and that your writing achieves the desired outcomes.
@@ -23,29 +23,57 @@ app = typer.Typer(
     rich_markup_mode="rich",
 )
 
+OptConfig = Annotated[Path, typer.Option(help="The config file for the idea.")]
+default_config = Path("unit-text.json")
+
 
 @app.command()
-def ideate(
-    output: Annotated[
-        Path, typer.Option(help="The output file to write the ideas to.")
-    ] = Path("unit-text.json"),
-):
+def ideate(config: OptConfig = default_config):
     """Generate ideas for your writing."""
     print("I'll ask you a few questions to prepare for your writing.")
 
-    topic = Prompt.ask("What is the [bold green]topic[/]?")
-    audience = Prompt.ask("Who is your intended [bold red]audience[/]?")
-    audience_knowledge = Prompt.ask(
-        "What does your audience already know about the [bold green]topic[/]?"
-    )
-    audience_care = Prompt.ask("Why do they care about what you're writing?")
-    desired_action = Prompt.ask(
-        "What do you want them to do differently after reading your writing?"
+    existing_idea = (
+        IdeaModel.model_validate_json(config.read_text())
+        if config.exists()
+        else IdeaModel(
+            topic=None,
+            audience=None,
+            audience_knowledge=None,
+            audience_care=None,
+            desired_action=None,
+            goal=None,
+            perspective=None,
+        )
     )
 
-    goal = Prompt.ask("What's the goal of this blog post?")
+    topic = Prompt.ask(
+        "What is the [bold green]topic[/]?",
+        default=existing_idea.topic,
+    )
+    audience = Prompt.ask(
+        "Who is your intended [bold red]audience[/]?",
+        default=existing_idea.audience,
+    )
+    audience_knowledge = Prompt.ask(
+        "What does your audience already know about the [bold green]topic[/]?",
+        default=existing_idea.audience_knowledge,
+    )
+    audience_care = Prompt.ask(
+        "Why do they care about what you're writing?",
+        default=existing_idea.audience,
+    )
+    desired_action = Prompt.ask(
+        "What do you want them to do differently after reading your writing?",
+        default=existing_idea.desired_action,
+    )
+
+    goal = Prompt.ask(
+        "What's the goal of this blog post?",
+        default=existing_idea.goal,
+    )
     perspective = Prompt.ask(
-        "Why is your perspective on this [bold green]topic[/] interesting?"
+        "Why is your perspective on this [bold green]topic[/] interesting?",
+        default=existing_idea.perspective,
     )
 
     idea = IdeaModel(
@@ -58,18 +86,13 @@ def ideate(
         perspective=perspective,
     )
 
-    output.write_text(idea.model_dump_json())
+    config.write_text(idea.model_dump_json(indent=2))
 
-    print(f"Idea written to {output}")
+    print(f"[bold yellow]Idea[/] written to {config}")
 
 
 @app.command()
-def test(
-    file: Path,
-    config: Annotated[Path, typer.Option(help="The config file.")] = Path(
-        "unit-text.json"
-    ),
-):
+def test(file: Path, config: OptConfig = default_config):
     """Test the input file."""
     print("Running tests...")
 

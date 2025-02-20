@@ -4,13 +4,13 @@ from pydantic import BaseModel
 class IdeaModel(BaseModel):
     """Represents an idea for a piece of writing."""
 
-    topic: str
-    audience: str
-    audience_knowledge: str
-    audience_care: str
-    desired_action: str
-    goal: str
-    perspective: str
+    topic: str | None
+    audience: str | None
+    audience_knowledge: str | None
+    audience_care: str | None
+    desired_action: str | None
+    goal: str | None
+    perspective: str | None
 
 
 class Evaluation(BaseModel):
