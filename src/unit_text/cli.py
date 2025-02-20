@@ -4,11 +4,12 @@ from typing import Annotated
 import ollama
 import typer
 from dicttoxml import dicttoxml
-from pydantic import BaseModel
 from rich import print
 from rich.console import Group
 from rich.panel import Panel
 from rich.prompt import Prompt
+
+from .models import Evaluation, IdeaModel, TestResult
 
 app = typer.Typer(
     short_help="Unit tests for prose",
@@ -21,16 +22,6 @@ app = typer.Typer(
     no_args_is_help=True,
     rich_markup_mode="rich",
 )
-
-
-class IdeaModel(BaseModel):
-    topic: str
-    audience: str
-    audience_knowledge: str
-    audience_care: str
-    desired_action: str
-    goal: str
-    perspective: str
 
 
 @app.command()
@@ -70,18 +61,6 @@ def ideate(
     output.write_text(idea.model_dump_json())
 
     print(f"Idea written to {output}")
-
-
-class Evaluation(BaseModel):
-    evaluation: str
-    suggestions: str
-
-
-class TestResult(BaseModel):
-    clarity: Evaluation
-    alignment_with_objectives: Evaluation
-    completeness: Evaluation
-    overall_suggestions: str
 
 
 @app.command()
