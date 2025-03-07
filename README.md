@@ -41,7 +41,28 @@ to validate whether your draft is going in the right direction.
 
 An AI copy editor, you could say.
 
-## Usage
+## ⚙️ Installation
+
+[We recommend](https://sealambda.com/blog/hygienic-python-in-2025) [uv](https://github.com/astral-sh/uv) to run the CLI.
+
+```bash
+# to run the CLI straight away
+uvx unit-text --help
+
+# or if you prefer to install it
+uv tool install unit-text
+```
+
+You may of course also use `pip` to install the CLI - or `pipx` if you prefer to install it in an isolated environment.
+
+```bash
+pipx install unit-text
+
+# ...or if you like to live on the edge
+pip install unit-text
+```
+
+## 🔨 Usage
 
 ### Requirements
 
@@ -55,5 +76,15 @@ Either:
 unit-text ideate
 
 # To validate the working draft
-unit-text test <path-to-the-draft>
+unit-text test <path-to-the-draft.md>
 ```
+
+## 💻 Contributing
+
+If you want to contribute to the project, please read the [CONTRIBUTING.md](./CONTRIBUTING.md) file.
+
+It contains information on how to set up your development environment, submit issues, and create pull requests.
+
+## 📜 License
+
+This project is licensed under the AGPLv3 License. See the [LICENSE](LICENSE) file for details.
