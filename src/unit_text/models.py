@@ -18,6 +18,7 @@ class Evaluation(BaseModel):
 
     evaluation: str
     suggestions: str
+    test_passed: bool
 
 
 class TestResult(BaseModel):

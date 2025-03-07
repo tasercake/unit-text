@@ -2,8 +2,8 @@
   "topic": "A blog post about using AI to write unit tests for blog posts",
   "audience": "Developers familiar with TDD (test driven development) and some interest in AI",
   "audience_knowledge": "They know the TDD workflow and have a general understanding of LLMs",
-  "audience_care": "Developers familiar with TDD (test driven development) and some interest in AI",
-  "desired_action": "I read a book about this, and wrote a tool to help with what that book is teaching",
-  "goal": "Get people to try out my tool",
+  "audience_care": "I believe many developers would like to write blog posts, but get discouraged by the process",
+  "desired_action": "I would like more people to write blog posts",
+  "goal": "Get people to try out my tool unit-text",
   "perspective": "I read a book about this, and wrote a tool to help with what that book is teaching"
 }

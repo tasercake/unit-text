@@ -6,6 +6,7 @@ import typer
 from dicttoxml import dicttoxml
 from rich import print
 from rich.console import Group
+from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt
 
@@ -104,28 +105,62 @@ def test(file: Path, config: OptConfig = default_config):
     xml_body = dicttoxml(body, attr_type=False, root=False)
 
     prompt = f"""
-    Given a blog post idea and a draft,
-    analyze whether the draft meets the stated objectives.
-    
     {xml_idea}
     
     {xml_body}
-    
-    Provide structured feedback in this format:
-    1. Clarity: [Evaluation + Suggested improvements]
-    2. Alignment with objectives: [Evaluation + Suggested changes]
-    3. Completeness: [Evaluation + What’s missing or redundant]
-    4. Overall Suggestions: [General feedback]
     """
 
     response = ollama.chat(
         model="deepseek-r1:7b",
         messages=[
-            {"role": "system", "content": "You are a helpful technical writer"},
+            {
+                "role": "system",
+                "content": """
+You are an experienced technical writer and editor with expertise in developer-focused content.
+Your role is to provide detailed, actionable feedback on blog posts,
+focusing on both technical accuracy and engaging writing style.
+
+When reviewing a blog post, analyze it against the following criteria:
+
+1. Clarity:
+   - Is the main message clear and well-articulated?
+   - Are technical concepts explained appropriately for the target audience?
+   - Is the writing style engaging and accessible?
+   - Are there any confusing or ambiguous sections?
+
+2. Alignment with Objectives:
+   - Does the content match the stated goals and target audience?
+   - Is the technical depth appropriate for the intended readers?
+   - Are the examples and analogies relevant and helpful?
+   - Does the post deliver on its promises?
+
+3. Completeness:
+   - Are all key points fully developed?
+   - Is there a clear introduction and conclusion?
+   - Are code examples (if any) complete and well-explained?
+   - Are there any missing or unnecessary sections?
+
+4. Overall Suggestions:
+   - Specific improvements for structure and flow
+   - Recommendations for enhancing engagement
+   - Suggestions for technical accuracy or depth
+   - Ideas for better examples or analogies
+
+For each evaluation, return a `test_passed` boolean
+to indicate if the content was good enough for that specific aspect.
+
+Keep your feedback constructive but honest.
+Focus on specific, actionable improvements rather than general observations.
+Reference specific parts of the text when making suggestions.
+""",
+            },
             {"role": "user", "content": prompt},
         ],
         format=TestResult.model_json_schema(),
-        options={"temperature": 0},
+        options=ollama.Options(
+            temperature=0,  # to ensure consistent results
+            num_ctx=8192,  # to ensure the entire text is processed
+        ),
     )
 
     out = TestResult.model_validate_json(response.message.content)
@@ -133,18 +168,42 @@ def test(file: Path, config: OptConfig = default_config):
     def evaluation_panel(evaluation: Evaluation, title: str) -> Panel:
         return Panel(
             Group(
-                Panel(evaluation.evaluation, title="Evaluation", style="blue"),
-                Panel(evaluation.suggestions, title="Suggestions", style="green"),
+                Panel(
+                    Markdown(evaluation.evaluation),
+                    title="Evaluation",
+                    style="blue",
+                ),
+                Panel(
+                    Markdown(evaluation.suggestions),
+                    title="Suggestions",
+                    style="green",
+                ),
             ),
-            title=title,
+            title=f"{title}"
+            " "
+            f"({
+                '[bold green]Passed[/]'
+                if evaluation.test_passed
+                else '[bold red]Failed[/]'
+            })",
         )
 
     panel_group = Group(
-        evaluation_panel(out.clarity, title="Clarity"),
         evaluation_panel(
-            out.alignment_with_objectives, title="Alignment with Objectives"
+            out.clarity,
+            title="Clarity",
         ),
-        evaluation_panel(out.completeness, title="Completeness"),
-        Panel(out.overall_suggestions, title="Overall Suggestions"),
+        evaluation_panel(
+            out.alignment_with_objectives,
+            title="Alignment with Objectives",
+        ),
+        evaluation_panel(
+            out.completeness,
+            title="Completeness",
+        ),
+        Panel(
+            Markdown(out.overall_suggestions),
+            title="Overall Suggestions",
+        ),
     )
     print(panel_group)
