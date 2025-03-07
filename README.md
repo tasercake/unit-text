@@ -8,7 +8,9 @@
 </p>
 
 <div align="center">
+
 ![unit-text logo](./docs/img/logo.png)
+
 </div>
 
 ---
