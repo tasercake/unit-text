@@ -18,7 +18,7 @@
 Don't let LLMs write blog posts for you. Do your research, bring your own voice,
 and use LLMs to criticise and iterate on your writing.
 
-## Why unit-text?
+## 🤌 Why unit-text?
 
 If you're a developer like us:
 
@@ -78,6 +78,27 @@ unit-text ideate
 # To validate the working draft
 unit-text test <path-to-the-draft.md>
 ```
+
+## 📝 Process
+
+The ideation phase is where you define your blog idea. It looks something like this:
+
+![Showing an example blog idea](./docs/img/example/ideate.png)
+
+Your idea is now stored in a `unit-text.json` file, in the current directory.
+
+You may run `unit-text ideate` again at any time to finetune it.
+
+Now you can start writing, let's say you're writing in a file called `draft.md`.
+
+At any time, you can run `unit-text test draft.md` to validate it.
+Initially, it may look something like this:
+
+![Showing a failing test execution](./docs/img/example/01.png)
+
+Keep iterating on your draft, based on feedback from `unit-text`, until it passes all tests:
+
+![Showing a passing test execution](./docs/img/example/03.png)
 
 ## 💻 Contributing
 
