@@ -116,7 +116,8 @@ def test(file: Path, config: OptConfig = default_config):
             {
                 "role": "system",
                 "content": """
-You are an experienced technical writer and editor with expertise in developer-focused content.
+You are an experienced technical writer and editor
+with expertise in developer-focused content.
 Your role is to provide detailed, actionable feedback on blog posts,
 focusing on both technical accuracy and engaging writing style.
 
