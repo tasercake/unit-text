@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/revcat
+      url: https://pypi.org/p/unit-text
     permissions:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
 
@@ -115,7 +115,7 @@ jobs:
 #
 #    environment:
 #      name: testpypi
-#      url: https://test.pypi.org/p/revcat
+#      url: https://test.pypi.org/p/unit-text
 #
 #    permissions:
 #      id-token: write  # IMPORTANT: mandatory for trusted publishing
