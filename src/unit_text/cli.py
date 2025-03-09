@@ -177,7 +177,7 @@ Reference specific parts of the text when making suggestions.
 """
 
     # Call the appropriate API based on the provider
-    if provider == ModelProvider.OLLAMA:
+    if provider == ModelProvider.ollama:
         response = ollama.chat(
             model=model_to_use,
             messages=[
