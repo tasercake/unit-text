@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Annotated
 
 import ollama
+import openai
 import typer
 from dicttoxml import dicttoxml
 from rich import print
@@ -10,7 +11,7 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt
 
-from .models import Evaluation, IdeaModel, TestResult
+from .models import Evaluation, IdeaModel, ModelProvider, TestResult
 
 app = typer.Typer(
     short_help="Unit tests for prose",
@@ -93,9 +94,33 @@ def ideate(config: OptConfig = default_config):
 
 
 @app.command()
-def test(file: Path, config: OptConfig = default_config):
+def test(
+    file: Path,
+    config: OptConfig = default_config,
+    provider: Annotated[
+        ModelProvider,
+        typer.Option(help="Model provider to use: ollama, openai"),
+    ] = ModelProvider.ollama,
+    model: Annotated[
+        str,
+        typer.Option(
+            help="Specific model to use (defaults to provider's default model)"
+        ),
+    ] = None,
+):
     """Test the input file."""
     print("Running tests...")
+
+    # Default models for each provider
+    default_models = {
+        ModelProvider.ollama: "deepseek-r1:7b",
+        ModelProvider.openai: "gpt-4o",
+    }
+
+    # Use the provided model or fall back to the default for the selected provider
+    model_to_use = model or default_models[provider]
+
+    print(f"Using {provider} with model {model_to_use}")
 
     idea = IdeaModel.model_validate_json(config.read_text())
 
@@ -110,12 +135,7 @@ def test(file: Path, config: OptConfig = default_config):
     {xml_body}
     """
 
-    response = ollama.chat(
-        model="deepseek-r1:7b",
-        messages=[
-            {
-                "role": "system",
-                "content": """
+    system_message = """
 You are an experienced technical writer and editor
 with expertise in developer-focused content.
 Your role is to provide detailed, actionable feedback on blog posts,
@@ -153,18 +173,40 @@ to indicate if the content was good enough for that specific aspect.
 Keep your feedback constructive but honest.
 Focus on specific, actionable improvements rather than general observations.
 Reference specific parts of the text when making suggestions.
-""",
-            },
-            {"role": "user", "content": prompt},
-        ],
-        format=TestResult.model_json_schema(),
-        options=ollama.Options(
-            temperature=0,  # to ensure consistent results
-            num_ctx=8192,  # to ensure the entire text is processed
-        ),
-    )
+"""
 
-    out = TestResult.model_validate_json(response.message.content)
+    # Call the appropriate API based on the provider
+    if provider == ModelProvider.OLLAMA:
+        response = ollama.chat(
+            model=model_to_use,
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": prompt},
+            ],
+            format=TestResult.model_json_schema(),
+            options=ollama.Options(
+                temperature=0,  # to ensure consistent results
+                num_ctx=8192,  # to ensure the entire text is processed
+            ),
+        )
+        result_json = response.message.content
+
+    elif provider == ModelProvider.openai:
+        response = openai.chat.completions.create(
+            model=model_to_use,
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": prompt},
+            ],
+            response_format=TestResult,
+            temperature=0,
+        )
+        result_json = response.choices[0].message.content
+
+    else:
+        raise ValueError(f"Unsupported provider: {provider}")
+
+    out = TestResult.model_validate_json(result_json)
 
     def evaluation_panel(evaluation: Evaluation, title: str) -> Panel:
         return Panel(

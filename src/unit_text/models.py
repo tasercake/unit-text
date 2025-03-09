@@ -1,3 +1,5 @@
+from enum import StrEnum, auto
+
 from pydantic import BaseModel
 
 
@@ -28,3 +30,10 @@ class TestResult(BaseModel):
     alignment_with_objectives: Evaluation
     completeness: Evaluation
     overall_suggestions: str
+
+
+class ModelProvider(StrEnum):
+    """The model provider to use for testing."""
+
+    ollama = auto()
+    openai = auto()
