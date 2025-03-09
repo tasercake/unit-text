@@ -39,7 +39,7 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "openai>=1.7.0",
+    "openai>=1.65.5",
     "dicttoxml>=1.7.16",
     "ollama>=0.4.7",
     "pydantic>=2.10.6",
