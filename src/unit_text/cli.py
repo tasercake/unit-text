@@ -194,7 +194,7 @@ Reference specific parts of the text when making suggestions.
 
     elif provider == ModelProvider.openai:
         client = openai.OpenAI(api_key=SETTINGS.openai_api_key)
-        response = client.chat.completions.create(
+        response = client.beta.chat.completions.parse(
             model=model_to_use,
             messages=[
                 {"role": "system", "content": system_message},
