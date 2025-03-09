@@ -20,3 +20,6 @@ devenv.local.nix
 
 # pre-commit
 .pre-commit-config.yaml
+
+# unit-text generated files
+unit-text.json
