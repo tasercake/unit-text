@@ -43,6 +43,7 @@ dependencies = [
     "dicttoxml>=1.7.16",
     "ollama>=0.4.7",
     "pydantic>=2.10.6",
+    "pydantic-settings>=2.8.1",
     "typer>=0.15.1",
 ]
 

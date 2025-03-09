@@ -12,6 +12,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 
 from .models import Evaluation, IdeaModel, ModelProvider, TestResult
+from .settings import SETTINGS
 
 app = typer.Typer(
     short_help="Unit tests for prose",
@@ -192,7 +193,8 @@ Reference specific parts of the text when making suggestions.
         result_json = response.message.content
 
     elif provider == ModelProvider.openai:
-        response = openai.chat.completions.create(
+        client = openai.OpenAI(api_key=SETTINGS.openai_api_key)
+        response = client.chat.completions.create(
             model=model_to_use,
             messages=[
                 {"role": "system", "content": system_message},
