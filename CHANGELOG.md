@@ -1,3 +1,10 @@
+## v0.2.5 (2025-03-09)
+
+### Fix
+
+- python 3.11
+- SyntaxError: unterminated string literal
+
 ## v0.2.4 (2025-03-07)
 
 ### Fix
