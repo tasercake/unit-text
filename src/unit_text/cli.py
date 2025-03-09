@@ -1,7 +1,9 @@
+import base64
+import mimetypes
+import re
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
-import ollama
 import openai
 import typer
 from dicttoxml import dicttoxml
@@ -94,6 +96,101 @@ def ideate(config: OptConfig = default_config):
     print(f"[bold yellow]Idea[/] written to {config}")
 
 
+def parse_file_to_message_blocks(
+    file_path: Path,
+    file_type: Literal["text", "markdown"] | None = None,
+):
+    """
+    Parse a file and return its content as a list of messages in the OpenAI API format.
+
+    Args:
+        file_path: Path to the file
+        file_type: Explicitly specify the file type (text or markdown)
+                  If None, will be inferred from the file extension
+
+    Returns:
+        List of message blocks in OpenAI API format
+    """
+    # Infer file type if not provided
+    if not file_type:
+        suffix = file_path.suffix.lower()
+        if suffix in [".md", ".markdown"]:
+            file_type = "markdown"
+        else:
+            file_type = "text"
+
+    # Read the content of the file
+    content = file_path.read_text()
+
+    if file_type == "text":
+        return [{"role": "user", "content": content}]
+
+    elif file_type == "markdown":
+        # For markdown, we need to parse and handle images
+        # First, let's create a list to hold our message content parts
+        message_parts = []
+
+        # Regular expression to find Markdown image syntax: ![alt](url)
+        image_pattern = r"!\[(.*?)\]\((.*?)\)"
+
+        # Split the content based on image tags
+        last_end = 0
+        for match in re.finditer(image_pattern, content):
+            # Add text before the image
+            if match.start() > last_end:
+                text_before = content[last_end : match.start()]
+                if text_before.strip():
+                    message_parts.append({"type": "text", "text": text_before})
+
+            # Extract image info
+            alt_text = match.group(1)
+            image_path = match.group(2)
+
+            # Handle local image paths
+            if not image_path.startswith(("http://", "https://")):
+                # Resolve path relative to the markdown file
+                img_full_path = file_path.parent / image_path
+                if img_full_path.exists():
+                    # Determine MIME type
+                    mime_type, _ = mimetypes.guess_type(img_full_path)
+                    if not mime_type:
+                        mime_type = "image/jpeg"  # Default to JPEG if can't determine
+
+                    # Read and encode image
+                    with open(img_full_path, "rb") as img_file:
+                        img_data = base64.b64encode(img_file.read()).decode("utf-8")
+
+                    # Add image to message parts
+                    message_parts.append(
+                        {
+                            "type": "image",
+                            "image_url": {"url": f"data:{mime_type};base64,{img_data}"},
+                        }
+                    )
+                else:
+                    # If image doesn't exist, include as text
+                    img_reference = f"![{alt_text}]({image_path})"
+                    message_parts.append({"type": "text", "text": img_reference})
+            else:
+                # For remote images, just include the URL
+                message_parts.append(
+                    {"type": "image", "image_url": {"url": image_path}}
+                )
+
+            last_end = match.end()
+
+        # Add any remaining text after the last image
+        if last_end < len(content):
+            remaining_text = content[last_end:]
+            if remaining_text.strip():
+                message_parts.append({"type": "text", "text": remaining_text})
+
+        return message_parts
+
+    else:
+        raise ValueError(f"Unsupported file type: {file_type}")
+
+
 @app.command()
 def test(
     file: Path,
@@ -124,17 +221,6 @@ def test(
     print(f"Using {provider} with model {model_to_use}")
 
     idea = IdeaModel.model_validate_json(config.read_text())
-
-    xml_idea = dicttoxml(idea.model_dump(), attr_type=False, custom_root="idea")
-
-    body = {"draft": file.read_text()}
-    xml_body = dicttoxml(body, attr_type=False, root=False)
-
-    prompt = f"""
-    {xml_idea}
-    
-    {xml_body}
-    """
 
     system_message = """
 You are an experienced technical writer and editor
@@ -176,37 +262,50 @@ Focus on specific, actionable improvements rather than general observations.
 Reference specific parts of the text when making suggestions.
 """
 
-    # Call the appropriate API based on the provider
-    if provider == ModelProvider.ollama:
-        response = ollama.chat(
-            model=model_to_use,
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": prompt},
-            ],
-            format=TestResult.model_json_schema(),
-            options=ollama.Options(
-                temperature=0,  # to ensure consistent results
-                num_ctx=8192,  # to ensure the entire text is processed
-            ),
-        )
-        result_json = response.message.content
+    # Convert the idea to XML format for inclusion in the user message
+    xml_idea = dicttoxml(idea.model_dump(), attr_type=False, custom_root="idea")
 
-    elif provider == ModelProvider.openai:
+    # Get file content as content parts
+    file_content_parts = parse_file_to_message_blocks(file)
+
+    # Create content starting with idea XML as a text block
+    content_parts = [{"type": "text", "text": xml_idea}]
+
+    # Add all file content parts (text and images) in their original order
+    content_parts.extend(file_content_parts)
+
+    # Create the complete user message
+    user_message = {"role": "user", "content": content_parts}
+
+    # Create messages list with system and user messages
+    messages = [{"role": "system", "content": system_message}, user_message]
+
+    # Result will be stored here
+    result_json = None
+
+    # Create appropriate client based on provider
+    if provider == ModelProvider.openai:
         client = openai.OpenAI(api_key=SETTINGS.openai_api_key)
         response = client.beta.chat.completions.parse(
             model=model_to_use,
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": prompt},
-            ],
+            messages=messages,
             response_format=TestResult,
             temperature=0,
         )
         result_json = response.choices[0].message.content
-
-    else:
-        raise ValueError(f"Unsupported provider: {provider}")
+    elif provider == ModelProvider.ollama:
+        base_url = "http://localhost:11434/v1"
+        client = openai.OpenAI(
+            base_url=base_url,
+            api_key="ollama",  # required but unused
+        )
+        response = client.chat.completions.create(
+            model=model_to_use,
+            messages=messages,
+            # response_format={"json_schema": TestResult.model_json_schema()},
+            temperature=0,
+        )
+        result_json = response.choices[0].message.content
 
     out = TestResult.model_validate_json(result_json)
 
